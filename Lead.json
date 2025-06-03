@@ -1,25 +1,24 @@
 {
-  "name": "AI Lead Qualification & CRM Entry",
+  "name": "LeadGen",
   "nodes": [
     {
-      "id": "1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-qualification",
+        "options": {}
+      },
+      "id": "161b99f6-61d7-4c52-9bba-1ba161ab0129",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [200, 300],
-      "parameters": {
-        "path": "lead-qualification",
-        "method": "POST",
-        "responseMode": "onReceived"
-      },
+      "position": [
+        -40,
+        -40
+      ],
+      "webhookId": "61c5d1ac-aa83-4082-bb20-3a6ecca5aa90",
       "notes": "Receives incoming lead data via POST request."
     },
     {
-      "id": "2",
-      "name": "Set Prompt",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 1,
-      "position": [400, 300],
       "parameters": {
         "values": {
           "string": [
@@ -28,114 +27,254 @@
               "value": "Evaluate the following lead data and determine if the lead is qualified based on industry relevance and job title:\n\nName: {{$json[\"name\"]}}\nEmail: {{$json[\"email\"]}}\nCompany: {{$json[\"company\"]}}\nTitle: {{$json[\"job_title\"]}}\nIndustry: {{$json[\"industry\"]}}\n\nRespond with 'Qualified' or 'Not Qualified' and provide a brief reason."
             }
           ]
-        }
+        },
+        "options": {}
       },
+      "id": "94a4db61-76bd-476a-b997-f337ec2d7df9",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        100,
+        240
+      ],
       "notes": "Constructs the prompt for OpenAI based on lead data."
     },
     {
-      "id": "3",
-      "name": "OpenAI",
-      "type": "n8n-nodes-base.openai",
-      "typeVersion": 1,
-      "position": [600, 300],
       "parameters": {
-        "resource": "completion",
-        "operation": "create",
-        "model": "gpt-4",
-        "prompt": "={{$json[\"prompt\"]}}",
-        "temperature": 0.7,
-        "maxTokens": 100
+        "prompt": "=Evaluate the following lead data and determine if the lead is qualified based on industry relevance and job title:\n\nName: {{$json[\"name\"]}}\nEmail: {{$json[\"email\"]}}\nCompany: {{$json[\"company\"]}}\nTitle: {{$json[\"job_title\"]}}\nIndustry: {{$json[\"industry\"]}}\n\nRespond with 'Qualified' or 'Not Qualified' and provide a brief reason.",
+        "options": {
+          "maxTokens": 100,
+          "temperature": 0.7
+        },
+        "requestOptions": {}
       },
+      "id": "c0e6fb14-4d26-43ec-b395-4352ea154eb1",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        260,
+        220
+      ],
       "credentials": {
-        "openaiApi": {
-          "id": "your-openai-credentials-id"
+        "openAiApi": {
+          "id": "dD63nF4NEux7NsLt",
+          "name": "OpenAi account"
         }
       },
-      "notes": "Sends the prompt to OpenAI GPT-4 Completion API and receives the qualification response."
+      "notes": "Sends the prompt to OpenAI and receives the qualification response."
     },
     {
-      "id": "4",
+      "parameters": {
+        "functionCode": "const response = $json.text?.trim();\n\nif (!response) {\n  throw new Error(\"OpenAI response is missing or malformed.\");\n}\n\nlet qualification = \"Unknown\";\nlet reason = \"\";\n\nif (response.toLowerCase().startsWith(\"qualified\")) {\n  qualification = \"Qualified\";\n  reason = response.substring(9).trim();\n} else if (response.toLowerCase().startsWith(\"not qualified\")) {\n  qualification = \"Not Qualified\";\n  reason = response.substring(13).trim();\n} else {\n  reason = response;\n}\n\nreturn [{\n  json: {\n    ...$json,\n    qualification,\n    reason\n  }\n}];"
+      },
+      "id": "a9a8bc8f-d49b-4d60-8cb0-fd24e1cad5d3",
       "name": "Parse Response",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
-      "position": [800, 300],
-      "parameters": {
-        "functionCode": "const response = $json.choices?.[0]?.text?.trim();\n\nif (!response) {\n  throw new Error(\"OpenAI response is missing or malformed.\");\n}\n\nlet qualification = \"Unknown\";\nlet reason = \"\";\n\nif (response.toLowerCase().startsWith(\"qualified\")) {\n  qualification = \"Qualified\";\n  reason = response.substring(9).trim();\n} else if (response.toLowerCase().startsWith(\"not qualified\")) {\n  qualification = \"Not Qualified\";\n  reason = response.substring(13).trim();\n} else {\n  reason = response;\n}\n\nreturn [{\n  json: {\n    ...$json,\n    qualification,\n    reason\n  }\n}];"
-      },
+      "position": [
+        460,
+        40
+      ],
       "notes": "Parses OpenAI's response to extract qualification status and reason."
     },
     {
-      "id": "5",
-      "name": "Airtable",
-      "type": "n8n-nodes-base.airtable",
-      "typeVersion": 1,
-      "position": [1000, 300],
       "parameters": {
         "operation": "create",
-        "baseId": "appxm6iaWdlcbc5cP",
-        "tableId": "tblL7wjr4a1Ahi6T4",
-        "fields": {
-          "Name": "={{$json[\"name\"]}}",
-          "Email": "={{$json[\"email\"]}}",
-          "Company": "={{$json[\"company\"]}}",
-          "Job Title": "={{$json[\"job_title\"]}}",
-          "Industry": "={{$json[\"industry\"]}}",
-          "Qualification": "={{$json[\"qualification\"]}}",
-          "Reason": "={{$json[\"reason\"]}}"
-        }
+        "base": {
+          "__rl": true,
+          "value": "appxm6iaWdlcbc5cP",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "=tblL7wjr4a1Ahi6T4",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{$json[\"name\"]}}",
+            "Notes": "={{ \"Email: \" + $json[\"email\"] + \"\\nCompany: \" + $json[\"company\"] + \"\\nTitle: \" + $json[\"job_title\"] + \"\\nIndustry: \" + $json[\"industry\"] + \"\\nQualification: \" + $json[\"qualification\"] + \"\\nReason: \" + $json[\"reason\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Assignee",
+              "displayName": "Assignee",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Todo",
+                  "value": "Todo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Attachments",
+              "displayName": "Attachments",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Attachment Summary",
+              "displayName": "Attachment Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
       },
+      "id": "de0fc0dc-3e50-4f6a-bfbf-4422e2954ba5",
+      "name": "Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2,
+      "position": [
+        620,
+        180
+      ],
       "credentials": {
-        "airtableApi": {
-          "id": "your-airtable-credentials-id"
+        "airtableTokenApi": {
+          "id": "veaMiX5P8AdDSS9m",
+          "name": "Airtable Personal Access Token account"
         }
       },
       "notes": "Stores the lead data along with qualification status and reason in Airtable."
+    },
+    {
+      "parameters": {
+        "content": "ð§  Workflow Note: AI Lead Qualification & Airtable CRM Entry\n\nPurpose:\nAutomatically qualifies incoming leads using OpenAI and logs them into Airtable.\n\nFlow Summary:\n\t1. Webhook Node\n\t\tâ¢ Receives incoming lead data via HTTP POST at /lead-qualification.\n\t2. Set Node\n\t\tâ¢ Prepares a custom prompt to evaluate lead quality.\n\t3. OpenAI Node\n\t\tâ¢ Sends the prompt to GPT-4 to determine if the lead is âQualifiedâ or âNot Qualifiedâ, with reasoning.\n\t4. Function Node\n\t\tâ¢ Parses GPT-4âs response and extracts the decision and explanation.\n\t5. Airtable Node (v2)\n\t\tâ¢ Records the lead details, qualification result, and reason in Airtable (âTable 1â of âUntitled Baseâ).\n\nCredentials Required:\n\tâ¢ OpenAI API Key\n\tâ¢ Airtable API Key with access to the base\n\nNotes:\n\tâ¢ Uses GPT-4 for consistent lead evaluation.\n\tâ¢ Airtable node updated for latest n8n version compatibility.\n\tâ¢ Update Base/Table URLs or field mappings if you change the Airtable structure.",
+        "height": 560,
+        "width": 560,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        100,
+        -300
+      ],
+      "typeVersion": 1,
+      "id": "8c41f712-0d47-4e3d-94ba-bf8fa6a2cf7a",
+      "name": "Sticky Note"
     }
   ],
+  "pinData": {},
   "connections": {
-    "1": {
+    "Webhook": {
       "main": [
         [
           {
-            "node": "2",
+            "node": "Set Prompt",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "2": {
+    "Set Prompt": {
       "main": [
         [
           {
-            "node": "3",
+            "node": "OpenAI",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "3": {
+    "OpenAI": {
       "main": [
         [
           {
-            "node": "4",
+            "node": "Parse Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "4": {
+    "Parse Response": {
       "main": [
         [
           {
-            "node": "5",
+            "node": "Airtable",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a963fb0f-379f-464f-bd1e-21c538e1987b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "873fa8af96735f15f74681e10b58c6d507bb4541bb83c2d38587a59d25e24874"
+  },
+  "id": "czlmPBMNQ8URmFrz",
+  "tags": []
 }
