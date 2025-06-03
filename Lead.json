@@ -1,0 +1,141 @@
+{
+  "name": "AI Lead Qualification & CRM Entry",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "parameters": {
+        "path": "lead-qualification",
+        "method": "POST",
+        "responseMode": "onReceived"
+      },
+      "notes": "Receives incoming lead data via POST request."
+    },
+    {
+      "id": "2",
+      "name": "Set Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [400, 300],
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "Evaluate the following lead data and determine if the lead is qualified based on industry relevance and job title:\n\nName: {{$json[\"name\"]}}\nEmail: {{$json[\"email\"]}}\nCompany: {{$json[\"company\"]}}\nTitle: {{$json[\"job_title\"]}}\nIndustry: {{$json[\"industry\"]}}\n\nRespond with 'Qualified' or 'Not Qualified' and provide a brief reason."
+            }
+          ]
+        }
+      },
+      "notes": "Constructs the prompt for OpenAI based on lead data."
+    },
+    {
+      "id": "3",
+      "name": "OpenAI",
+      "type": "n8n-nodes-base.openai",
+      "typeVersion": 1,
+      "position": [600, 300],
+      "parameters": {
+        "resource": "completion",
+        "operation": "create",
+        "model": "gpt-4",
+        "prompt": "={{$json[\"prompt\"]}}",
+        "temperature": 0.7,
+        "maxTokens": 100
+      },
+      "credentials": {
+        "openaiApi": {
+          "id": "your-openai-credentials-id"
+        }
+      },
+      "notes": "Sends the prompt to OpenAI GPT-4 Completion API and receives the qualification response."
+    },
+    {
+      "id": "4",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [800, 300],
+      "parameters": {
+        "functionCode": "const response = $json.choices?.[0]?.text?.trim();\n\nif (!response) {\n  throw new Error(\"OpenAI response is missing or malformed.\");\n}\n\nlet qualification = \"Unknown\";\nlet reason = \"\";\n\nif (response.toLowerCase().startsWith(\"qualified\")) {\n  qualification = \"Qualified\";\n  reason = response.substring(9).trim();\n} else if (response.toLowerCase().startsWith(\"not qualified\")) {\n  qualification = \"Not Qualified\";\n  reason = response.substring(13).trim();\n} else {\n  reason = response;\n}\n\nreturn [{\n  json: {\n    ...$json,\n    qualification,\n    reason\n  }\n}];"
+      },
+      "notes": "Parses OpenAI's response to extract qualification status and reason."
+    },
+    {
+      "id": "5",
+      "name": "Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [1000, 300],
+      "parameters": {
+        "operation": "create",
+        "baseId": "appxm6iaWdlcbc5cP",
+        "tableId": "tblL7wjr4a1Ahi6T4",
+        "fields": {
+          "Name": "={{$json[\"name\"]}}",
+          "Email": "={{$json[\"email\"]}}",
+          "Company": "={{$json[\"company\"]}}",
+          "Job Title": "={{$json[\"job_title\"]}}",
+          "Industry": "={{$json[\"industry\"]}}",
+          "Qualification": "={{$json[\"qualification\"]}}",
+          "Reason": "={{$json[\"reason\"]}}"
+        }
+      },
+      "credentials": {
+        "airtableApi": {
+          "id": "your-airtable-credentials-id"
+        }
+      },
+      "notes": "Stores the lead data along with qualification status and reason in Airtable."
+    }
+  ],
+  "connections": {
+    "1": {
+      "main": [
+        [
+          {
+            "node": "2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2": {
+      "main": [
+        [
+          {
+            "node": "3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3": {
+      "main": [
+        [
+          {
+            "node": "4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4": {
+      "main": [
+        [
+          {
+            "node": "5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
